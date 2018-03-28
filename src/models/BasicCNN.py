@@ -5,10 +5,10 @@ import torch.optim as optim
 import matplotlib.pylab as plt
 import numpy as np
 
-from data.PickleDataLoader import PickleDataLoader
+from data.PickleDataReader import PickleDataReader
 from data.WindowDataSet import WindowDataSet
 
-KERNEL_SIZE = 5
+KERNEL_SIZE = 3
 
 
 class BasiCNN(nn.Module):
@@ -18,30 +18,38 @@ class BasiCNN(nn.Module):
         input_size = int(config['input_size'])
         self.conv = nn.Sequential(
             nn.Conv1d(in_channels=1, out_channels=2, kernel_size=KERNEL_SIZE),
+            nn.BatchNorm1d(2),
             nn.ReLU(),
-            nn.MaxPool1d(2),
+            # nn.MaxPool1d(2),
             nn.Conv1d(in_channels=2, out_channels=4, kernel_size=KERNEL_SIZE),
+            nn.BatchNorm1d(4),
             nn.ReLU(),
-            nn.MaxPool1d(2),
+            # nn.MaxPool1d(2),
             nn.Conv1d(in_channels=4, out_channels=8, kernel_size=KERNEL_SIZE),
+            nn.BatchNorm1d(8),
             nn.ReLU(),
-            nn.MaxPool1d(2),
+            # nn.MaxPool1d(2),
             nn.Conv1d(in_channels=8, out_channels=16, kernel_size=KERNEL_SIZE),
+            nn.BatchNorm1d(16),
             nn.ReLU(),
-            nn.MaxPool1d(2),
+            # nn.MaxPool1d(2),
         )
         # 16 channels
-        self.pred_input_size = self.cal_size(input_size) * 16
+        self.pred_input_size = self.cal_size(input_size) * 4
         self.pred_output_size = int(config['output_size'])
         self.pred = nn.Sequential(
             nn.Linear(self.pred_input_size, int(self.pred_input_size / 2)),
+            nn.BatchNorm1d(int(self.pred_input_size / 2)),
             nn.ReLU(),
             nn.Linear(int(self.pred_input_size / 2), int(self.pred_input_size / 4)),
+            nn.BatchNorm1d(int(self.pred_input_size / 4)),
             nn.ReLU(),
             nn.Linear(int(self.pred_input_size / 4), int(self.pred_input_size / 8)),
+            nn.BatchNorm1d(int(self.pred_input_size / 8)),
             nn.ReLU(),
             nn.Linear(int(self.pred_input_size / 8), self.pred_output_size),
         )
+        # self.apply(weight_init)
 
     def forward(self, x):
         conved = self.conv(x).view(-1, self.pred_input_size)
@@ -49,9 +57,12 @@ class BasiCNN(nn.Module):
         return result
 
     def cal_size(self, input_size):
-        for i in range(4):
-            input_size = input_size - KERNEL_SIZE + 1
-            input_size = int(input_size / 2)
+        input_size = input_size - KERNEL_SIZE + 1
+        input_size = input_size - KERNEL_SIZE + 1
+        # input_size = int(input_size / 2)
+        input_size = input_size - KERNEL_SIZE + 1
+        input_size = input_size - KERNEL_SIZE + 1
+        # input_size = int(input_size / 2)
         return input_size
 
 
@@ -88,6 +99,18 @@ def train_net(train_net, data_loader, train_epoch, learn_rate):
     plt.ylim([0, 0.002])
 
 
+def weight_init(m):
+    if isinstance(m, nn.Conv1d):
+        n = m.kernel_size[0] * m.out_channels
+        m.weight.data.normal_(0, np.math.sqrt(2. / n))
+    elif isinstance(m, nn.Linear):
+        n = m.in_features * m.out_features
+        m.weight.data.normal_(0, np.math.sqrt(2. / n))
+    elif isinstance(m, nn.BatchNorm2d):
+        m.weight.data.fill_(1)
+        m.bias.data.zero_()
+
+
 if __name__ == '__main__':
     # configs
     input_size = 128
@@ -102,7 +125,7 @@ if __name__ == '__main__':
     config = {'input_size': input_size, 'output_size': output_size}
 
     # initializations
-    loader = PickleDataLoader(data_file, input_size, output_size,
+    loader = PickleDataReader(data_file, input_size, output_size,
                               data_stride)
     train_set, test_set = loader.load(train_ratio)
     train_set = WindowDataSet(train_set)

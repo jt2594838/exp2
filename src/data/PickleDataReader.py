@@ -2,13 +2,14 @@ import pickle
 import random
 
 import time
+import matplotlib.pylab as plt
 
 from data.DataWindow import DataWindow
 
 DATA_KEY = 'metric2_list'
 
 
-class PickleDataLoader:
+class PickleDataReader:
     """
         :arg
         fileName : the name of the file which contains the data, in pickle format and the key of data is 'metric2_list'
@@ -24,11 +25,12 @@ class PickleDataLoader:
         self.predN = pred_num
         self.stride = stride
 
-    def load(self, train_ratio):
+    def load(self, train_ratio, shuffle=True):
         pickle_obj = pickle.load(open(self.file_name, 'rb'))
         data_list = pickle_obj[DATA_KEY]
         data_list = self.preprocess(data_list)
-        random.Random(time.time()).shuffle(data_list)
+        if shuffle == True:
+            random.Random(time.time()).shuffle(data_list)
 
         index = 0
         data_len = len(data_list)
@@ -48,15 +50,17 @@ class PickleDataLoader:
         return train_list, test_list
 
     def preprocess(self, data_list):
-        ret_list = []
+        ret_list = [0]
         data_len = len(data_list)
-        for i in range(data_len):
-            ret_list.append(data_list[i] / data_list[0])
+        for i in range(1, data_len):
+            ret_list.append((data_list[i] / data_list[0]))
         return ret_list
 
 
 if __name__ == '__main__':
-    loader = PickleDataLoader('/home/cdx4838/PycharmProjects/exp2/exp2/data/cnn1.log.cache', 10, 2, 1)
-    alist = loader.load()
-    print(len(alist))
-    print(alist)
+    loader = PickleDataReader('/home/cdx4838/PycharmProjects/exp2/exp2/data/cnn1.log.cache', 10, 2, 1)
+    pickle_obj = pickle.load(open('/home/cdx4838/PycharmProjects/exp2/exp2/data/cnn1.log.cache', 'rb'))
+    data_list = pickle_obj[DATA_KEY]
+    plt.figure()
+    plt.plot(range(len(data_list)), data_list)
+    plt.show()
