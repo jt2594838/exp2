@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+
 class Transition:
     def __init__(self, prev_stat, prd_act, next_stat, real_val) -> None:
         super().__init__()

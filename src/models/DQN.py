@@ -1,15 +1,11 @@
-import time
-import torch
 import random
-from torch import nn
+
+import torch
+import torch.optim as optim
+from torch.autograd import Variable
 
 import models.BasicCNN as BasicCNN
-from torch.autograd import Variable
-import torch.optim as optim
-
-from data.PickleDataReader import PickleDataReader
-from data.WindowDataSet import WindowDataSet
-from models.Transition import Transition, TransitionContainer
+from models.Transition import TransitionContainer
 
 BUY = 0
 SELL = 1

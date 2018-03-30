@@ -1,3 +1,5 @@
+import torch
+
 
 class DataWindow:
     """
@@ -7,5 +9,11 @@ class DataWindow:
     """
     def __init__(self, originD, nextD) -> None:
         super().__init__()
-        self.originD = originD
-        self.nextD = nextD
+        if isinstance(originD, torch.FloatTensor):
+            self.originD = originD
+        else:
+            self.originD = torch.FloatTensor(originD).view(1, -1)
+        if isinstance(nextD, torch.FloatTensor):
+            self.nextD = nextD
+        else:
+            self.nextD = torch.FloatTensor(nextD).view(1, -1)
