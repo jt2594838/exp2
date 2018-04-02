@@ -11,6 +11,7 @@ import matplotlib.pylab as plt
 
 import numpy as np
 
+
 def eval_net(net, data_loader, criterion):
     data = data_loader.__iter__().next()
     net_input = Variable(data['data'])
@@ -42,6 +43,7 @@ def train_net(train_net, data_loader, train_epoch, learn_rate):
     plt.figure(0)
     plt.plot(np.arange(0, train_epoch), np.array(loss_list))
     plt.ylim([0, 0.002])
+
 
 if __name__ == '__main__':
     # configs

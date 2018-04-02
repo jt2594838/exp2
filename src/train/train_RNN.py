@@ -8,11 +8,12 @@ from models.RNN import RNN
 
 import torch.optim as optim
 import matplotlib.pylab as plt
-import numpy as np
 import time
 
+import numpy as np
 
-def train_net(train_net, criterion, data_loader, train_epoch):
+
+def train_net(train_net, criterion, data_loader, train_epoch, learn_rate):
     curr_time = time.time()
     opt = optim.Adam(train_net.parameters(), lr=learn_rate)
     # train
@@ -37,13 +38,24 @@ def train_net(train_net, criterion, data_loader, train_epoch):
     print('time consumption : %f s, loss : %.10f ' % ((time.time() - curr_time), loss_list[-1]))
 
 
+def eval_net(net, data_loader, criterion):
+    data = data_loader.__iter__().next()
+    net_input = Variable(data['data'])
+    target = Variable(data['label'], requires_grad=False).squeeze()
+    output = net(net_input)
+
+    test_loss = criterion(output, target)
+
+    return test_loss
+
+
 if __name__ == '__main__':
     # configs
     input_size = 16    # 16
     timestamp = 4      # 4  -- 0.0006
     output_size = 8    # 8
-    hidden_size = 312   # 64
-    layer_num = 4      # 4
+    hidden_size = 1024   # 1024  large hidden_size ,small layer_num
+    layer_num = 1      # 1
     data_stride = 8    # 8
     train_ratio = 0.9  # 0.9
     max_epoch = 1000   # 1000
@@ -67,4 +79,6 @@ if __name__ == '__main__':
     test_loader = data_util.DataLoader(test_set, batch_size=test_set.__len__(),
                                        shuffle=True, num_workers=2)
 
-    train_net(net, criterion, train_loader, max_epoch)
+    train_net(net, criterion, train_loader, max_epoch, learn_rate)
+    loss = eval_net(net, test_loader, criterion)
+    print("test loss : %.10f" % loss.data[0])

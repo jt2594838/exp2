@@ -65,6 +65,8 @@ class BasiCNN(nn.Module):
         x = self.BN4(x)
         x = self.ReLU4(x)
 
+        x = x.view(x.size(0), -1)
+
         x = self.Linear1(x)
         x = self.LinBN1(x)
         x = self.LinReLu1(x)
@@ -88,7 +90,7 @@ class BasiCNN(nn.Module):
         input_size = input_size - KERNEL_SIZE + 1
         input_size = input_size - KERNEL_SIZE + 1
         # input_size = int(input_size / 2)
-        return input_size * 4
+        return input_size * 16
 
 def weight_init(m):
     if isinstance(m, nn.Conv1d):
