@@ -19,16 +19,20 @@ hidden_size = 256  # 1024  large hidden_size ,small layer_num
 layer_num = 1  # 1
 data_stride = 16  # 8
 train_ratio = 0.9  # 0.9
-pre_train_epoch = 200
-max_epoch = 10  # 1000
+pre_train_epoch = 100
+max_epoch = 200  # 1000
 learn_rate = 5e-4  # 1e-4
 batch_size = 64  # 64
 dis_gen_train_ratio = 1
 criterion = torch.nn.MSELoss()
-data_file = '/home/cdx4838/PycharmProjects/exp2/exp2/data/cnn2.log.cache'
+use_cuda = True
+use_BN = True
+thread_num = 6
+drop_out_ratio = 0
+data_file = '/home/jt/codes/exp2/data/cnn1.log.cache'
 config = {'input_size': input_size, 'output_size': output_size, 'learn_rate': learn_rate,
           'batch_size': batch_size, 'hidden_size': hidden_size, 'layer_num': layer_num,
-          'timestamp': timestamp
+          'timestamp': timestamp, 'use_BN': use_BN, 'drop_out_ratio': drop_out_ratio
           }
 
 
@@ -121,7 +125,7 @@ def train_net(train_net, data_loader, train_epoch, learn_rate):
     plt.plot(np.arange(0, train_epoch), np.array(dif_list))
     plt.title("difference")
 
-    # plt.show()
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -133,10 +137,13 @@ if __name__ == '__main__':
     train_set = RNNDataSet(train_set, timestamp)
     test_set = RNNDataSet(test_set, timestamp)
 
+    if use_cuda:
+        thread_num = 1
+
     train_loader = data_util.DataLoader(train_set, batch_size=batch_size,
-                                        shuffle=True, num_workers=2)
+                                        shuffle=True, num_workers=thread_num)
     test_loader = data_util.DataLoader(test_set, batch_size=test_set.__len__(),
-                                       shuffle=True, num_workers=2)
+                                       shuffle=True, num_workers=thread_num)
 
     train_net(net, train_loader, max_epoch, learn_rate)
     pre_train_net(net.generator.nn, criterion, train_loader, pre_train_epoch, learn_rate)

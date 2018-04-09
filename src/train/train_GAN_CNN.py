@@ -23,13 +23,17 @@ batch_size = 64  # 64
 dis_gen_train_ratio = 1
 drop_out_ratio = 0
 criterion = torch.nn.MSELoss()
-data_file = '/home/cdx4838/PycharmProjects/exp2/exp2/data/cnn2.log.cache'
+use_cuda = True
+use_BN = True
+thread_num = 6
+data_file = '/home/jt/codes/exp2/data/cnn1.log.cache'
 config = {'input_size': input_size, 'output_size': output_size, 'learn_rate': learn_rate,
-          'batch_size': batch_size, 'drop_out_ratio': drop_out_ratio
+          'batch_size': batch_size, 'drop_out_ratio': drop_out_ratio, 'use_BN': use_BN,
+          'use_cuda': use_cuda
           }
 
 
-def pre_train_net(train_net, criterion, data_loader, train_epoch, learn_rate):
+def pre_train_net(train_net, criterion, data_loader, train_epoch, learn_rate, use_cuda):
     curr_time = time.time()
     opt = optim.Adam(train_net.parameters(), lr=learn_rate)
     # train
@@ -38,6 +42,9 @@ def pre_train_net(train_net, criterion, data_loader, train_epoch, learn_rate):
         for i, data in enumerate(data_loader, 0):
             train_input = Variable(data['data'])
             target = Variable(data['label'], requires_grad=False).squeeze()
+            if use_cuda:
+                train_input = train_input.cuda()
+                target = target.cuda()
             output = train_net(train_input)
 
             opt.zero_grad()
@@ -54,7 +61,7 @@ def pre_train_net(train_net, criterion, data_loader, train_epoch, learn_rate):
     print('pre train time consumption : %f s, loss : %.10f ' % ((time.time() - curr_time), loss_list[-1]))
 
 
-def train_net(train_net, data_loader, train_epoch, learn_rate):
+def train_net(train_net, data_loader, train_epoch, learn_rate, use_cuda):
     curr_time = time.time()
     gen_opt = optim.Adam(train_net.generator.nn.parameters(), lr=learn_rate*0.1)
     dis_opt = optim.Adam(train_net.discriminator.nn.parameters(), lr=learn_rate)
@@ -71,6 +78,8 @@ def train_net(train_net, data_loader, train_epoch, learn_rate):
             data = sample['data']
             label = sample['label']
             gen_input = Variable(data)
+            if use_cuda:
+                gen_input = gen_input.cuda()
             gen_output = train_net.generator.gen(gen_input)
 
             gen_input = gen_input.view(gen_input.size(0), -1)
@@ -79,6 +88,8 @@ def train_net(train_net, data_loader, train_epoch, learn_rate):
 
             dis_label_input = Variable(
                 torch.cat((data.view(gen_input.size(0), -1), label.view(gen_input.size(0), -1)), 1))
+            if use_cuda:
+                dis_label_input = dis_label_input.cuda()
             dis_label_output = train_net.discriminate(dis_label_input.unsqueeze(1))
 
             gen_loss = torch.mean(torch.log(1.0 - dis_gen_output))
@@ -106,15 +117,15 @@ def train_net(train_net, data_loader, train_epoch, learn_rate):
 
     print("time consumption : %f s" % (time.time() - curr_time))
 
-    plt.figure()
+    plt.figure(0)
     plt.plot(np.arange(0, train_epoch), np.array(gen_loss_list))
     plt.title("generator")
 
-    plt.figure()
+    plt.figure(1)
     plt.plot(np.arange(0, train_epoch), np.array(dis_loss_list))
     plt.title("discriminator")
 
-    plt.figure()
+    plt.figure(2)
     plt.plot(np.arange(0, train_epoch), np.array(dif_list))
     plt.title("difference")
 
@@ -130,10 +141,13 @@ if __name__ == '__main__':
     train_set = WindowDataSet(train_set)
     test_set = WindowDataSet(test_set)
 
-    train_loader = data_util.DataLoader(train_set, batch_size=batch_size,
-                                        shuffle=True, num_workers=2)
-    test_loader = data_util.DataLoader(test_set, batch_size=test_set.__len__(),
-                                       shuffle=True, num_workers=2)
+    if use_cuda:
+        thread_num = 1
 
-    pre_train_net(net.generator.nn, criterion, train_loader, pre_train_epoch, learn_rate)
-    train_net(net, train_loader, max_epoch, learn_rate)
+    train_loader = data_util.DataLoader(train_set, batch_size=batch_size,
+                                        shuffle=True, num_workers=thread_num)
+    test_loader = data_util.DataLoader(test_set, batch_size=test_set.__len__(),
+                                       shuffle=True, num_workers=thread_num)
+
+    pre_train_net(net.generator.nn, criterion, train_loader, pre_train_epoch, learn_rate, use_cuda)
+    train_net(net, train_loader, max_epoch, learn_rate, use_cuda)

@@ -19,7 +19,8 @@ class Discriminator:
         super().__init__()
         cnn_input_size = config['input_size'] * config['timestamp'] + config['output_size']
         cnn_output_size = 1
-        self.nn = BasiCNN({'input_size': cnn_input_size, 'output_size': cnn_output_size})
+        self.nn = BasiCNN({'input_size': cnn_input_size, 'output_size': cnn_output_size,
+                            'drop_out_ratio': config['drop_out_ratio'], 'use_BN': config['use_BN']})
 
     def discriminate(self, x):
         output = self.nn(x)
@@ -33,3 +34,9 @@ class GAN_RNN:
         super().__init__()
         self.generator = Generator(config)
         self.discriminator = Discriminator(config)
+
+    def gen(self, x):
+        return self.generator.gen(x)
+
+    def discriminate(self, x):
+        return self.discriminator.discriminate(x)

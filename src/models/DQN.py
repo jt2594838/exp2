@@ -14,6 +14,8 @@ SELL = 1
     This agent is given a window of data, and its mission is to decide to buy with all its money or sell all its share.
     The output 1*2 vector represent the reward of buy and sell respectively.
 """
+
+
 class DQN:
     def __init__(self, config) -> None:
         super().__init__()
@@ -33,11 +35,20 @@ class DQN:
         self.gamma = config['gamma']
         self.greedy = config['greedy']
         self.total_loss = 0.0
+        self.use_cuda = config['use_cuda']
+        if self.use_cuda:
+            self.eval_net = self.eval_net.cuda()
+            self.target_net = self.target_net.cuda()
 
     def take_action(self, data, use_greedy=False):
         if use_greedy and random.uniform(0, 1) > self.greedy:
-            return 0, random.randint(0, 1)
+            ret = Variable(torch.zeros(1))
+            if self.use_cuda:
+                ret = ret.cuda()
+            return ret, random.randint(0, 1)
         else:
+            if self.use_cuda:
+                data = data.cuda()
             prd_val = self.eval_net(data)
             if prd_val.data[0, BUY] > prd_val.data[0, SELL]:
                 return prd_val[0, BUY], BUY
@@ -67,10 +78,16 @@ class DQN:
         curr_state_batch = Variable(curr_state_batch)
         next_state_batch = Variable(next_state_batch)
         real_reward_batch = Variable(real_reward_batch).squeeze()
+        if self.use_cuda:
+            curr_state_batch = curr_state_batch.cuda()
+            next_state_batch = next_state_batch.cuda()
+            real_reward_batch = real_reward_batch.cuda()
         # train the eval net
         ## calculate the rewards given by eval net
         eval_value = self.eval_net(curr_state_batch)
         eval_reward = Variable(torch.zeros(self.batch_size))
+        if self.use_cuda:
+            eval_reward = eval_reward.cuda()
         for i in range(self.batch_size):
             act = prd_act_batch[i, 0, 0]
             eval_reward[i] = eval_value[i, act]
@@ -78,6 +95,8 @@ class DQN:
         target_reward = real_reward_batch
         for i in range(self.batch_size):
             reward, _ = self.take_action(torch.unsqueeze(next_state_batch[i, :, :], 1))
+            if self.use_cuda:
+                reward = reward.cuda()
             target_reward[i] = target_reward[i] + self.gamma * reward
         ## caculate the loss
         loss = self.criterion(eval_reward, target_reward.detach())
@@ -141,6 +160,3 @@ class Environment:
         self.curr_price = 0.0
         self.curr_asset = 1.0
         self.prev_asset = 1.0
-
-
-

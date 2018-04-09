@@ -12,6 +12,27 @@ import time
 
 import numpy as np
 
+# configs
+input_size = 16  # 16
+timestamp = 4  # 4  -- 0.0006
+output_size = 8  # 8
+hidden_size = 1024  # 1024  large hidden_size ,small layer_num
+layer_num = 1  # 1
+data_stride = 8  # 8
+train_ratio = 0.9  # 0.9
+max_epoch = 1000  # 1000
+learn_rate = 1e-4  # 1e-4
+batch_size = 64  # 64
+criterion = nn.MSELoss()
+use_cuda = True
+use_BN = True
+thread_num = 6
+data_file = '/home/jt/codes/exp2/data/cnn1.log.cache'
+config = {'input_size': input_size, 'output_size': output_size, 'learn_rate': learn_rate,
+          'batch_size': batch_size, 'hidden_size': hidden_size, 'layer_num': layer_num, 'use_BN': use_BN,
+          'use_cuda': use_cuda
+          }
+
 
 def train_net(train_net, criterion, data_loader, train_epoch, learn_rate):
     curr_time = time.time()
@@ -50,22 +71,6 @@ def eval_net(net, data_loader, criterion):
 
 
 if __name__ == '__main__':
-    # configs
-    input_size = 16    # 16
-    timestamp = 4      # 4  -- 0.0006
-    output_size = 8    # 8
-    hidden_size = 1024   # 1024  large hidden_size ,small layer_num
-    layer_num = 1      # 1
-    data_stride = 8    # 8
-    train_ratio = 0.9  # 0.9
-    max_epoch = 1000   # 1000
-    learn_rate = 1e-4  # 1e-4
-    batch_size = 64    # 64
-    criterion = nn.MSELoss()
-    data_file = '/home/cdx4838/PycharmProjects/exp2/exp2/data/cnn1.log.cache'
-    config = {'input_size': input_size, 'output_size': output_size, 'learn_rate': learn_rate,
-              'batch_size': batch_size, 'hidden_size': hidden_size, 'layer_num': layer_num
-              }
 
     net = RNN(config)
     loader = PickleDataReader(data_file, input_size, output_size,
@@ -74,10 +79,13 @@ if __name__ == '__main__':
     train_set = RNNDataSet(train_set, timestamp)
     test_set = RNNDataSet(test_set, timestamp)
 
+    if use_cuda:
+        thread_num = 1
+
     train_loader = data_util.DataLoader(train_set, batch_size=batch_size,
-                                        shuffle=True, num_workers=2)
+                                        shuffle=True, num_workers=thread_num)
     test_loader = data_util.DataLoader(test_set, batch_size=test_set.__len__(),
-                                       shuffle=True, num_workers=2)
+                                       shuffle=True, num_workers=thread_num)
 
     train_net(net, criterion, train_loader, max_epoch, learn_rate)
     loss = eval_net(net, test_loader, criterion)

@@ -7,6 +7,9 @@ class Generator:
     def __init__(self, config) -> None:
         super().__init__()
         self.nn = BasiCNN(config)
+        self.use_cuda = config['use_cuda']
+        if self.use_cuda:
+            self.nn = self.nn.cuda()
 
     def gen(self, x):
         output = self.nn(x)
@@ -19,7 +22,10 @@ class Discriminator:
         cnn_input_size = config['input_size'] + config['output_size']
         cnn_output_size = 1
         self.nn = BasiCNN({'input_size': cnn_input_size, 'output_size': cnn_output_size,
-                           'drop_out_ratio': config['drop_out_ratio']})
+                           'drop_out_ratio': config['drop_out_ratio'], 'use_BN': config['use_BN']})
+        self.use_cuda = config['use_cuda']
+        if self.use_cuda:
+            self.nn = self.nn.cuda()
 
     def discriminate(self, x):
         output = self.nn(x)
